@@ -10,6 +10,11 @@ import Data.ListLike (nub,sort,uncons,groupBy)
 import  Data.Map.Lazy (Map) 
 import qualified  Data.Map.Lazy as M (lookup,fromList,empty,mapWithKey,null)
 
+import Debug.Hood.Observe
+
+(<>) :: (Monoid m ) => m -> m -> m
+(<>) = mappend
+
 data ACTree out a = ACNode out         -- the output we produce if we reach the node
                     (Maybe (ACTree out a)) -- failure handling
                     (Map a (ACTree out a)) -- continuations from the node driven by input
