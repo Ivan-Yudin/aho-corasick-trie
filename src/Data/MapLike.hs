@@ -24,7 +24,9 @@ Generic operations over map-like structures
 -}
 
 module Data.MapLike
-  (empy, null, fromList,lookup,mapWithKey)  where
+  (empty, null, fromList,lookup,mapWithKey)  where
+
+import Prelude hiding (lookup, null) 
 
 import qualified Data.Map.Lazy as M
 import           Data.Map.Lazy       (Map)
@@ -34,18 +36,18 @@ class MapLike full key val | full -> key, full -> val where
   
   empty :: full
   null  :: full -> Bool 
-  fromList :: [(key,value)] -> full 
+  fromList :: [(key,val)] -> full 
   lookup   :: key -> full -> Maybe val
   mapWithKey :: (key -> val -> val) -> full -> full 
 
-instance MapLike (Map key val) key val where
+instance (Ord key, Eq val) => MapLike (Map key val) key val where
    empty = M.empty
    null  = M.null 
-   formList = M.fromList
-   lookuop  = M. lookup 
+   fromList = M.fromList
+   lookup  = M.lookup 
    mapWithKey = M.mapWithKey
 
-instance MapLike ([(key,val)]) key val where
+instance (Eq key) => MapLike ([(key,val)]) key val where
 
    empty = [] 
    null  = L.null 
