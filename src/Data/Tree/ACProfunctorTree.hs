@@ -52,14 +52,17 @@ failure (Node _   f _) = f
 -- | Given  tree and a string collects outputs produced by each matchLing
 -- substring. In the typical use @out~[a]@ and it equals to the matchLing
 -- substring. 
-match :: (Monoid out, Ord a, p ~ Maybe' ) => (Tree p out a) -> [a]  -> out
-match _                      []        = mempty
+match :: (Monoid out, Sieve p Maybe a ) =>
+         (Tree p out a) -> [a]  -> out
+
+match _ [] = mempty
+
 match root@(Node out _ branch) xx@(x:xs)   
   = case sieve branch x of 
      Just  t ->  out <> match' root t xs 
      Nothing ->         match  root   xs
 
-match' :: (Monoid out, Ord a, p ~ Maybe') =>
+match' :: (Monoid out, Sieve p Maybe a ) =>
           (Tree p out a) -> (Tree p out a) -> [a] -> out
 
 match' root (Node out failure branch) [] = out 
