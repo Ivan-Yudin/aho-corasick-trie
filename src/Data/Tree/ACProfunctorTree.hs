@@ -43,7 +43,6 @@ data Tree p out a = Node out                -- the output we produce if we reach
 deriving instance (Show a, Show out) => Show (Tree Maybe' out a) 
 deriving instance (Eq   a, Eq   out) => Eq   (Tree Maybe' out a) 
 
-out     (Node out _ _) = out
 branch  (Node _   _ f) = f
 failure (Node _   f _) = f
 
@@ -54,18 +53,22 @@ failure (Node _   f _) = f
 -- substring. In the typical use @out~[a]@ and it equals to the matchLing
 -- substring. 
 match :: (Monoid out, Ord a, p ~ Maybe' ) => (Tree p out a) -> [a]  -> out
--- match tree string = match' tree tree string 
-match (Node out failure branch) []  = mempty
-match root@(Node out failure branch) xx@(x:xs)   
-  | (Just'  y t ) <- branch, y == x = out <> match' root t    xs 
-  |  otherwise                      =        match  root      xs
+match _                      []        = mempty
+match root@(Node out _ branch) xx@(x:xs)   
+  = case sieve branch x of 
+     Just  t ->  out <> match' root t xs 
+     Nothing ->         match  root   xs
 
-match' :: (Monoid out, Ord a, p ~ Maybe') =>  (Tree p out a) -> (Tree p out a) -> [a] -> out
-match' root (Node out failure branch) []        =  out 
+match' :: (Monoid out, Ord a, p ~ Maybe') =>
+          (Tree p out a) -> (Tree p out a) -> [a] -> out
+
+match' root (Node out failure branch) [] = out 
+
 match' root (Node out failure branch) xx@(x:xs)
-  | (Just'  y t ) <- branch, y == x =  out <> match' root t    xs 
-  | (Just     t ) <- failure        =  out <> match' root t    xx 
-  |  otherwise                      =  out <> match  root      xx  
+  = case sieve branch x of 
+     Just  t                      -> out <> match' root t xs 
+     Nothing  | Just t <- failure -> out <> match' root t xx 
+              | otherwise         -> out <> match  root   xx  
 
 -- | The following function produces  tree that in conjunction with
 -- match permits to find some matchLes in given sequences.  
