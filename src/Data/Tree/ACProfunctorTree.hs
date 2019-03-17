@@ -1,7 +1,8 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE StandaloneDeriving    #-}
 
 module Data.Tree.ACProfunctorTree where 
 
@@ -9,7 +10,6 @@ import Prelude hiding (uncons)
 
 import Control.Applicative ((<|>)) 
 
-import Data.Profunctor
 
 import Data.Function (on)
 import Data.Maybe (fromMaybe)
@@ -23,6 +23,16 @@ import qualified  Data.List as L (lookup,null)
 (<>) = mappend
 
 data Maybe' a b = Just' a b | Nothing' deriving (Eq,Show,Read)
+
+class Sieve p f a where 
+  sieve ::  p a b -> a -> f b
+
+instance (Eq a) => Sieve Maybe' Maybe a where 
+   sieve (Just' a b) x | x == a = Just b 
+   sieve  _          _          = Nothing 
+
+instance (Ord a) => Sieve Map Maybe a where 
+  sieve = flip M.lookup 
 
 
 data Tree p out a = Node out                -- the output we produce if we reach the node
