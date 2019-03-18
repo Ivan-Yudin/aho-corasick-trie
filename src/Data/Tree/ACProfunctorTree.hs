@@ -121,6 +121,35 @@ prebuild1 f string = prebuild'  string (f string)
                                                  $ prebuild' xs out
 
 
+prebuild :: (Ord a, Monoid out, Eq out, t ~ Tree p out a
+            , MapLike (p a t) a t) =>
+            ([a] -> out) -> [[a]] -> t  
+prebuild f strings =
+   let strings' = nub $ sort strings 
+   in  prebuild' $ zip strings' (map f strings') 
+  where 
+--    prebuild' :: (Ord a, Monoid out, Eq out, t ~ Tree p out a) =>
+--                 [( [a] , out )]  -> t 
+
+    prebuild' [] = Node mempty Nothing empty
+    prebuild' pairs@( (x,out):pairs') 
+      | L.null x    =Node out    Nothing (createMap pairs')
+      | otherwise =Node mempty Nothing (createMap pairs )
+    createMap pairs = fromList $ 
+              createKeyValuePair  <$>  
+              groupBy ( (==) `on` head.fst) pairs
+ 
+--    createKeyValuePair ::(Ord a, Monoid out, Eq out) =>
+ --                        [ ([a], out ) ] -> (a , Tree p out a  )
+ 
+    createKeyValuePair pairs@( ( a:_ , _ ) : _)
+      = ( a, prebuild' $ tailOnFst <$> pairs)
+
+    tailOnFst :: ([a],out) -> ([a], out) 
+    tailOnFst (x,out) = (tail x , out)
+
+
+
 
 type BinOpOn a = a -> a -> a
 
@@ -169,7 +198,7 @@ tie     (Node outA _        (Just' a tA)) tBB
 -----------------------------------------------------------------------
 
  
-t = prebuild (:[]) "ababcababcabcd" 
+t = prebuild1 (:[]) "ababcababcabcd" 
 w = let s = tie t s in s
 label (Node _  _        (Just' a t )) = a
 next  (Node _  _        (Just' a t )) = t 
