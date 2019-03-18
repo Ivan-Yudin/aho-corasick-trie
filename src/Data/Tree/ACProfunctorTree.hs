@@ -59,8 +59,7 @@ instance Functor (Maybe' a) where
   fmap :: (b -> c) -> (Maybe' a b -> Maybe' a c) 
   fmap f (Just' a b) = Just'    a (f b) 
   fmap f  Nothing'   = Nothing' 
-
-
+  
 data Tree p out a = Node out                -- the output we produce if we reach the node
                      (Maybe (Tree p out a))    -- failure handling
                      (p a (Tree p out a)) -- continuation from the node driven by input
@@ -107,13 +106,21 @@ match' root (Node out failure branch) xx@(x:xs)
 -- outputs all matchLing prefixes of @p@, including @p@, and then resumes
 -- with 
 
-prebuild :: (Ord a, Monoid out, Eq out, p ~ Maybe' ) => ([a] -> out) -> [a] -> (Tree p out a) 
-prebuild f string = prebuild'  string (f string) 
+prebuild1 :: (Ord a, Monoid out, Eq out,  t ~ Tree p out a
+             , MapLike (p a t) a t ) =>
+            ([a] -> out) -> [a] -> (Tree p out a) 
+
+prebuild1 f string = prebuild'  string (f string) 
   where 
-    prebuild' :: (Ord a, Monoid out, Eq out, p~ Maybe') =>
-              [a] -> out -> (Tree p out a) 
-    prebuild' []     out =   Node out    Nothing  Nothing'
-    prebuild' (x:xs) out =   Node mempty Nothing (Just'   x $ prebuild' xs out)
+    prebuild' :: (Ord a, Monoid out, Eq out, t~ Tree p out a
+                 , MapLike (p a t) a t) =>
+                  [a] -> out -> t 
+
+    prebuild' []     out =   Node out    Nothing   empty 
+    prebuild' (x:xs) out =   Node mempty Nothing $ singleton x
+                                                 $ prebuild' xs out
+
+
 
 type BinOpOn a = a -> a -> a
 
