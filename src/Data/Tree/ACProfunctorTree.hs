@@ -19,8 +19,6 @@ import  Data.Map.Lazy (Map)
 import qualified  Data.Map.Lazy as M (lookup,fromList,empty,mapWithKey,null)
 import qualified  Data.List as L (lookup,null)
 
-(<>) :: (Monoid m ) => m -> m -> m
-(<>) = mappend
 
 data Maybe' a b = Just' a b | Nothing' deriving (Eq,Show,Read)
 

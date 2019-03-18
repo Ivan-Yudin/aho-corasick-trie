@@ -14,11 +14,6 @@ import  Data.Map.Lazy (Map)
 import qualified  Data.Map.Lazy as M (lookup,fromList,empty,mapWithKey,null)
 import qualified  Data.List as L (lookup,null)
 
-import Debug.Hood.Observe
-
-(<>) :: (Monoid m ) => m -> m -> m
-(<>) = mappend
-
 
 data KMPTree out a = KMPNode out                -- the output we produce if we reach the node
                      (Maybe (KMPTree out a))    -- failure handling
