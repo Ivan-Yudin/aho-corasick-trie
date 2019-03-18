@@ -26,6 +26,16 @@ import qualified  Data.List as L (lookup,null)
 
 data Maybe' a b = Just' a b | Nothing' deriving (Eq,Show,Read)
 
+-------------------------------------------------------------
+-- Classical instances for Maybe' 
+------------------------------------------------------------
+
+instance (Eq a) => Semigroup (Maybe' a b) where 
+  Nothing' <> y  = y 
+  x  <> _        = x
+
+instance (Eq a ) => Monoid (Maybe' a b) where
+  mempty = Nothing' 
 
 instance (Eq a ) => MapLike (Maybe' a b) a b where 
   empty = Nothing' 
@@ -45,6 +55,10 @@ instance (Eq a ) => MapLike (Maybe' a b) a b where
   mapWithKey h (Just' a b) = Just' a (h a b) 
   mapWithKey _  _          = Nothing'
 
+instance Functor (Maybe' a) where
+  fmap :: (b -> c) -> (Maybe' a b -> Maybe' a c) 
+  fmap f (Just' a b) = Just'    a (f b) 
+  fmap f  Nothing'   = Nothing' 
 
 
 data Tree p out a = Node out                -- the output we produce if we reach the node
