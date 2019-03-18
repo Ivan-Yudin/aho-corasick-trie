@@ -1,36 +1,50 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 
 module Data.Tree.ACProfunctorTree where 
 
-import Prelude hiding (uncons)
+import Prelude hiding (null, uncons,lookup)
 
 import Control.Applicative ((<|>)) 
 
 
 import Data.Function (on)
+
 import Data.Maybe (fromMaybe)
 
 import Data.ListLike (nub,sort,uncons,groupBy)
+import Data.MapLike 
 import  Data.Map.Lazy (Map) 
-import qualified  Data.Map.Lazy as M (lookup,fromList,empty,mapWithKey,null)
+import qualified  Data.Map.Lazy as M (lookup,fromList,toList,empty,mapWithKey,null)
 import qualified  Data.List as L (lookup,null)
 
+---------------------------------------------------------------
 
 data Maybe' a b = Just' a b | Nothing' deriving (Eq,Show,Read)
 
-class Sieve p f a where 
-  sieve ::  p a b -> a -> f b
 
-instance (Eq a) => Sieve Maybe' Maybe a where 
-   sieve (Just' a b) x | x == a = Just b 
-   sieve  _          _          = Nothing 
+instance (Eq a ) => MapLike (Maybe' a b) a b where 
+  empty = Nothing' 
 
-instance (Ord a) => Sieve Map Maybe a where 
-  sieve = flip M.lookup 
+  null :: Maybe' a b -> Bool
+  null Nothing' = True 
+  null _        = False 
+
+  singleton a b = Just' a b
+
+  fromList [] =         Nothing' 
+  fromList xx = uncurry Just'   $ last xx
+
+  lookup x (Just' y b) | x == y = Just b 
+  lookup _ _                    = Nothing  
+
+  mapWithKey h (Just' a b) = Just' a (h a b) 
+  mapWithKey _  _          = Nothing'
+
 
 
 data Tree p out a = Node out                -- the output we produce if we reach the node
@@ -38,8 +52,10 @@ data Tree p out a = Node out                -- the output we produce if we reach
                      (p a (Tree p out a)) -- continuation from the node driven by input
 
 
-deriving instance (Show a, Show out) => Show (Tree Maybe' out a) 
-deriving instance (Eq   a, Eq   out) => Eq   (Tree Maybe' out a) 
+deriving instance (Eq   a, Eq   out) => Eq   (Tree Map    out a)
+deriving instance (Eq   a, Eq   out) => Eq   (Tree Maybe' out a)
+deriving instance (Show a, Show out) => Show (Tree Map    out a)
+deriving instance (Show a, Show out) => Show (Tree Maybe' out a)
 
 branch  (Node _   _ f) = f
 failure (Node _   f _) = f
@@ -50,23 +66,23 @@ failure (Node _   f _) = f
 -- | Given  tree and a string collects outputs produced by each matchLing
 -- substring. In the typical use @out~[a]@ and it equals to the matchLing
 -- substring. 
-match :: (Monoid out, Sieve p Maybe a ) =>
-         (Tree p out a) -> [a]  -> out
+match :: (Monoid out, t ~ Tree p out a, MapLike (p a t) a t ) =>
+         t  -> [a]  -> out
 
 match _ [] = mempty
 
 match root@(Node out _ branch) xx@(x:xs)   
-  = case sieve branch x of 
+  = case lookup x branch of 
      Just  t ->  out <> match' root t xs 
      Nothing ->         match  root   xs
 
-match' :: (Monoid out, Sieve p Maybe a ) =>
-          (Tree p out a) -> (Tree p out a) -> [a] -> out
+match' :: (Monoid out, t ~ Tree p out a, MapLike (p a t) a t ) =>
+          t -> t  -> [a] -> out
 
 match' root (Node out failure branch) [] = out 
 
 match' root (Node out failure branch) xx@(x:xs)
-  = case sieve branch x of 
+  = case lookup x branch  of 
      Just  t                      -> out <> match' root t xs 
      Nothing  | Just t <- failure -> out <> match' root t xx 
               | otherwise         -> out <> match  root   xx  

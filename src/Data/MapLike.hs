@@ -24,7 +24,7 @@ Generic operations over map-like structures
 -}
 
 module Data.MapLike
-  (empty, null, fromList,lookup,mapWithKey)  where
+  (MapLike , empty, null,singleton, fromList,lookup,mapWithKey)  where
 
 import Prelude hiding (lookup, null) 
 
@@ -36,6 +36,7 @@ class MapLike full key val | full -> key, full -> val where
   
   empty :: full
   null  :: full -> Bool 
+  singleton :: key -> val -> full 
   fromList :: [(key,val)] -> full 
   lookup   :: key -> full -> Maybe val
   mapWithKey :: (key -> val -> val) -> full -> full 
@@ -43,6 +44,7 @@ class MapLike full key val | full -> key, full -> val where
 instance (Ord key, Eq val) => MapLike (Map key val) key val where
    empty = M.empty
    null  = M.null 
+   singleton key val = M.fromList [(key,val)]
    fromList = M.fromList
    lookup  = M.lookup 
    mapWithKey = M.mapWithKey
@@ -51,7 +53,9 @@ instance (Eq key) => MapLike ([(key,val)]) key val where
 
    empty = [] 
    null  = L.null 
+   singleton key val = [(key,val)] 
    fromList = id 
    lookup = L.lookup
    mapWithKey h = map ( \(key,val) -> (key, h key val) ) 
+
 
