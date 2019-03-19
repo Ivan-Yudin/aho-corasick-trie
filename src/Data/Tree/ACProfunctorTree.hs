@@ -9,17 +9,19 @@ module Data.Tree.ACProfunctorTree where
 
 import Prelude hiding (null, uncons,lookup)
 
-import Control.Applicative ((<|>)) 
+import Control.Applicative ((<|>),liftA2,(<*>),pure) 
 
 
+import Data.Default.Class(Default,def)
 import Data.Function (on)
 
 import Data.Maybe (fromMaybe)
 
 import Data.ListLike (nub,sort,uncons,groupBy)
 import Data.MapLike 
+
 import  Data.Map.Lazy (Map) 
-import qualified  Data.Map.Lazy as M (lookup,fromList,toList,empty,mapWithKey,null)
+import qualified  Data.Map.Lazy as M (intersectionWith, lookup,fromList,toList,empty,mapWithKey,null)
 import qualified  Data.List as L (lookup,null)
 
 ---------------------------------------------------------------
@@ -59,6 +61,26 @@ instance Functor (Maybe' a) where
   fmap :: (b -> c) -> (Maybe' a b -> Maybe' a c) 
   fmap f (Just' a b) = Just'    a (f b) 
   fmap f  Nothing'   = Nothing' 
+
+-------------------------------------------------------------------
+--  Applicative instances for @Maybe' a@ and @Map a@ 
+-------------------------------------------------------------------
+
+instance (Default a, Eq a) => Applicative (Maybe' a) where 
+  pure :: b -> Maybe' a b
+  pure b = Just' def b 
+
+  liftA2 :: (b -> c -> d) -> (Maybe' a b) -> (Maybe' a c) -> Maybe' a d
+  liftA2 h (Just' a b) (Just' a' c) | a == a' = Just' a (h b c) 
+  liftA2 _ _ _ = Nothing' 
+
+instance (Default a, Ord a) => Applicative (Map a) where 
+  pure b = M.fromList [(def,b)] 
+  
+  liftA2 :: (b -> c -> d) -> (Map a b) -> (Map a c) -> Map a d
+  liftA2 = M.intersectionWith
+
+-------------------------------------------------------------------
   
 data Tree p out a = Node out                -- the output we produce if we reach the node
                      (Maybe (Tree p out a))    -- failure handling
