@@ -153,36 +153,44 @@ prebuild f strings =
 
 type BinOpOn a = a -> a -> a
 
-tie :: (Eq out, Monoid out, Ord a, p~Maybe') => BinOpOn (Tree p out a)
 
 
-tie     (Node outA _        (Just' a tA)) tBB
-    -- tBB --@(Node outB failureB  _ )
-                                            = Node  outA
-                                                    Nothing
-                                                   (Just' a $ pretie' tA  tBB)
-                                                       -- ^insert vertex at the top at any case
-   where 
+tie :: (Eq out, Monoid out, Ord a, p~Maybe', t ~ Tree p out a
+       , MapLike (p a t) a t, Functor (p a) ) => BinOpOn t 
 
-    pretie'   (Node outA' _         (Just'  a' tA' )) 
-            t@(Node outB' failureB' (Just'  b' tB' ))
-              | a' == b'  = Node (         outA' ) failureB' $ Just'  a' $ tie'    tA' tB' 
-              |otherwise  = Node (         outA' ) Nothing   $ Just'  a' $ pretie' tA' t 
+tie  (Node outA _ continuation) rootB
+    = Node outA Nothing $ fmap (prezip rootB) continuation 
   
-    pretie' s _ = s 
 
-    tie'   (Node outA' _         Nothing'       )
-         t@(Node outB' failureB' (Just'  b' tB' ))
-                       = Node (outB' <> outA') (Just t) Nothing'  --  failureB' (Just'  b' tB' )
+--tie (Node outA _ (Just' a tA)) rootB = Node outA Nothing $ Just' a $ prezip tA  rootB 
+                                                              -- ^insert vertex at the top at any case
+   where 
+    prezip t@(Node _     _ continuationB')
+             (Node outA' _ continuationA') 
+      = Node outA' Nothing $ flip mapWithKey continuationA'
+        ( \a' -> case lookup a' continuationB' of 
+                   Just tB' -> zipping tB'
+                   Nothing  -> prezip  t )  
 
-    tie'   (Node outA' _         (Just'  a' tA' )) 
-         t@(Node outB' failureB' (Just'  b' tB' ))
-           | a' == b'  = Node (outB' <> outA' ) failureB' $ 
-                         Just'  a'$ tie' tA' tB' 
-           |otherwise  = Node (outB' <> outA' ) (Just t) $
-                         Just'  a' $ case h a failureB' of 
-                                       Nothing    -> pretie' tA' tBB
-                                       (Just tC)  -> tie'    tA' tC
+
+--    prezip t@(Node outB' failureB' (Just'  b' tB' ))
+--             (Node outA' _         (Just'  a' tA' )) 
+--               | a' == b'  = Node outA' failureB' $ Just'  a' $ zipping tB' tA' 
+--               |otherwise  = Node outA' Nothing   $ Just'  a' $ prezip  t   tA'
+  
+--    prezip _ s = s 
+
+    zipping t@(Node outB' _ _       )
+              (Node outA' _ Nothing')
+                       = Node (outB' <> outA') (Just t) Nothing'
+
+    zipping t@(Node outB' failureB' (Just'  b' tB' ))
+              (Node outA' _         (Just'  a' tA' )) 
+              | a' == b'  = Node (outB' <> outA' ) failureB' $ Just'  a' $ zipping tB' tA' 
+              |otherwise  = Node (outB' <> outA' ) (Just t)  $ Just'  a'
+                              $ case h a' failureB' of 
+                                  Nothing -> prezip rootB tA'
+                                  Just tC -> zipping   tC tA' 
   
    -- h :: (Ord a) => a -> Maybe (Tree out a) -> Maybe (Tree out a )
 
