@@ -40,6 +40,7 @@ class MapLike full key val | full -> key, full -> val where
   fromList :: [(key,val)] -> full 
   lookup   :: key -> full -> Maybe val
   mapWithKey :: (key -> val -> val) -> full -> full 
+  unionWithKey :: (key -> val -> val -> val ) -> full -> full -> full
 
 instance (Ord key, Eq val) => MapLike (Map key val) key val where
    empty = M.empty
@@ -48,6 +49,7 @@ instance (Ord key, Eq val) => MapLike (Map key val) key val where
    fromList = M.fromList
    lookup  = M.lookup 
    mapWithKey = M.mapWithKey
+   unionWithKey = M.unionWithKey
 
 instance (Eq key) => MapLike ([(key,val)]) key val where
 
@@ -57,5 +59,6 @@ instance (Eq key) => MapLike ([(key,val)]) key val where
    fromList = id 
    lookup = L.lookup
    mapWithKey h = map ( \(key,val) -> (key, h key val) ) 
+   unionWithKey h x y  = M.toList $ M.unionWithKey h (M.fromList x) (M.fromList y)
 
 

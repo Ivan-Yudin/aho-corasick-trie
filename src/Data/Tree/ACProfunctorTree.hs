@@ -57,6 +57,13 @@ instance (Eq a ) => MapLike (Maybe' a b) a b where
   mapWithKey h (Just' a b) = Just' a (h a b) 
   mapWithKey _  _          = Nothing'
 
+  unionWithKey h (Just' a1 b1) (Just' a2 b2)
+    | a1 == a2 = Just' a1 (h b1 b2) 
+    | a1 /= a2 = Just' a1  b1
+  
+  unionWithKey h x Nothing' = x 
+  unionWithKey h Nothing' y = y
+
 instance Functor (Maybe' a) where
   fmap :: (b -> c) -> (Maybe' a b -> Maybe' a c) 
   fmap f (Just' a b) = Just'    a (f b) 
