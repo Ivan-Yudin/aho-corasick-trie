@@ -5,11 +5,11 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 
-module Data.Tree.ACProfunctorTree where 
+module Data.Tree.ACProfunctorTree where
 
 import Prelude hiding (null, uncons,lookup)
 
-import Control.Applicative ((<|>),liftA2,(<*>),pure) 
+import Control.Applicative ((<|>),liftA2,(<*>),pure)
 
 
 import Data.Default.Class(Default,def)
@@ -18,9 +18,9 @@ import Data.Function (on)
 import Data.Maybe (fromMaybe)
 
 import Data.ListLike (nub,sort,uncons,groupBy)
-import Data.MapLike 
+import Data.MapLike
 
-import  Data.Map.Lazy (Map) 
+import  Data.Map.Lazy (Map)
 import qualified  Data.Map.Lazy as M (intersectionWith, lookup,fromList,toList,empty,mapWithKey,null)
 import qualified  Data.List as L (lookup,null)
 
@@ -57,12 +57,24 @@ instance (Eq a ) => MapLike (Maybe' a b) a b where
   mapWithKey h (Just' a b) = Just' a (h a b) 
   mapWithKey _  _          = Nothing'
 
-  unionWithKey h (Just' a1 b1) (Just' a2 b2)
-    | a1 == a2 = Just' a1 (h b1 b2) 
-    | a1 /= a2 = Just' a1  b1
-  
-  unionWithKey h x Nothing' = x 
-  unionWithKey h Nothing' y = y
+  merge hh (Just' a1 b1) (Just' a2 b2)
+    | a1 == a2 = case hh a1 (Just b1) (Just b2) of
+          Nothing -> Nothing'
+          Just b  -> Just' a1 b
+    | a1 /= a2 = merge hh (Just' a1 b1) Nothing' -- we have to make a choice here
+                                                 -- which key to keep...
+
+  merge hh (Just' a b) Nothing'
+    = case hh a (Just b) Nothing of
+          Nothing -> Nothing'
+          Just b' -> Just' a b'
+
+  merge hh Nothing' (Just' a b)
+    = case hh a Nothing (Just b) of
+          Nothing -> Nothing'
+          Just b' -> Just' a b'
+
+  merge hh Nothing' Nothing' = Nothing'
 
 instance Functor (Maybe' a) where
   fmap :: (b -> c) -> (Maybe' a b -> Maybe' a c) 

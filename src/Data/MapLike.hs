@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE InstanceSigs           #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 
 {-
@@ -24,11 +25,12 @@ Generic operations over map-like structures
 -}
 
 module Data.MapLike
-  (MapLike , empty, null,singleton, fromList,lookup,mapWithKey)  where
+  (MapLike , merge, empty, null,singleton, fromList,lookup,mapWithKey)  where
 
 import Prelude hiding (lookup, null) 
 
 import qualified Data.Map.Lazy as M
+import qualified Data.Map.Merge.Lazy as M
 import           Data.Map.Lazy       (Map)
 import qualified Data.List     as L
 
@@ -40,7 +42,8 @@ class MapLike full key val | full -> key, full -> val where
   fromList :: [(key,val)] -> full 
   lookup   :: key -> full -> Maybe val
   mapWithKey :: (key -> val -> val) -> full -> full 
-  unionWithKey :: (key -> val -> val -> val ) -> full -> full -> full
+  merge :: (key -> Maybe val -> Maybe val -> Maybe val ) -> 
+              full -> full -> full 
 
 instance (Ord key, Eq val) => MapLike (Map key val) key val where
    empty = M.empty
@@ -49,9 +52,14 @@ instance (Ord key, Eq val) => MapLike (Map key val) key val where
    fromList = M.fromList
    lookup  = M.lookup 
    mapWithKey = M.mapWithKey
-   unionWithKey = M.unionWithKey
 
-instance (Eq key) => MapLike ([(key,val)]) key val where
+   merge f = M.merge  
+              (M.mapMaybeMissing $ (\key val1 -> f key (Just val1) Nothing))
+              (M.mapMaybeMissing $ (\key val2 -> f key Nothing (Just val2)))
+              (M.zipWithMaybeMatched (\key val1 val2 -> f key (Just val1) (Just val2)))
+                           
+
+instance (Ord key, Eq val) => MapLike ([(key,val)]) key val where
 
    empty = [] 
    null  = L.null 
@@ -59,6 +67,6 @@ instance (Eq key) => MapLike ([(key,val)]) key val where
    fromList = id 
    lookup = L.lookup
    mapWithKey h = map ( \(key,val) -> (key, h key val) ) 
-   unionWithKey h x y  = M.toList $ M.unionWithKey h (M.fromList x) (M.fromList y)
-
+   merge f list1 list2 = M.toList $ merge f (M.fromList list1 ) (M.fromList list2) 
+   
 
