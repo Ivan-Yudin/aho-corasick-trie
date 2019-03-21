@@ -21,7 +21,7 @@ import Data.ListLike (nub,sort,uncons,groupBy)
 import Data.MapLike
 
 import  Data.Map.Lazy (Map)
-import qualified  Data.Map.Lazy as M (intersectionWith, lookup,fromList,toList,empty,mapWithKey,null)
+import qualified  Data.Map.Lazy as M (keys,intersectionWith, lookup,fromList,toList,empty,mapWithKey,null)
 import qualified  Data.List as L (lookup,null)
 
 ---------------------------------------------------------------
@@ -196,15 +196,12 @@ type BinOpOn a = a -> a -> a
 
 
 
-tie :: (Eq out, Monoid out, Ord a, p~Maybe', t ~ Tree p out a
+tie :: (Eq out, Monoid out, Ord a, t ~ Tree p out a
        , MapLike (p a t) a t, Functor (p a) ) => BinOpOn t
 
 tie  (Node outA _ continuation) rootB
     = Node outA Nothing $ fmap (prezip rootB) continuation
 
-
---tie (Node outA _ (Just' a tA)) rootB = Node outA Nothing $ Just' a $ prezip tA  rootB
-                                                              -- ^insert vertex at the top at any case
    where
     prezip t@(Node _     _ continuationB')
              (Node outA' _ continuationA')
@@ -214,32 +211,17 @@ tie  (Node outA _ continuation) rootB
                    Nothing  -> prezip  t )
 
 
---    prezip t@(Node outB' failureB' (Just'  b' tB' ))
---             (Node outA' _         (Just'  a' tA' ))
---               | a' == b'  = Node outA' failureB' $ Just'  a' $ zipping tB' tA'
---               |otherwise  = Node outA' Nothing   $ Just'  a' $ prezip  t   tA'
+    zipping t@(Node outB' failureB' continuationB')
+              (Node outA' _         continuationA')
+      = Node (outB' <> outA') (Just t)  continuationC
+        where
+          continuationC = merge hh continuationA' continuationB'
 
---    prezip _ s = s
+          hh _ (Just tA') (Just tB') = Just    $ zipping tB'   tA'
+          hh _ (Just tA')  Nothing   = Just    $ prezip  rootB tA'
+          hh _ _           _         = Nothing  
 
-    zipping t@(Node outB' _ _       )
-              (Node outA' _ Nothing')
-                       = Node (outB' <> outA') (Just t) Nothing'
 
-    zipping t@(Node outB' failureB' (Just'  b' tB' ))
-              (Node outA' _         (Just'  a' tA' ))
-              | a' == b'  = Node (outB' <> outA' ) failureB' $ Just'  a' $ zipping tB' tA'
-              |otherwise  = Node (outB' <> outA' ) (Just t)  $ Just'  a'
-                              $ case h a' failureB' of
-                                  Nothing -> prezip rootB tA'
-                                  Just tC -> zipping   tC tA'
-
-   -- h :: (Ord a) => a -> Maybe (Tree out a) -> Maybe (Tree out a )
-
-    h _ Nothing = Nothing
-    h x (Just (Node _ f Nothing'))  = Nothing
-    h x (Just (Node _ f (Just'  y t )))
-        | x == y    = h x f
-        | otherwise = Just t
 
 -----------------------------------------------------------------------
 --            SOME TESTING STAFF  -------------------------------------
@@ -247,11 +229,17 @@ tie  (Node outA _ continuation) rootB
 -----------------------------------------------------------------------
 
 
-t = prebuild1 (:[]) "ababcababcabcd"
+t = prebuild1 (:[]) "ababcababcabcd" :: Tree Map [String] Char
+tt = prebuild (:[]) ["abc","acd","cc"] :: Tree Map [String] Char
 w = let s = tie t s in s
+ww = tie tt ww
 label (Node _  _        (Just' a t )) = a
+labels (Node _  _        continuation) = M.keys continuation
 next  (Node _  _        (Just' a t )) = t
+nexts  (Node _  _         continuation) = map snd $ M.toList continuation
 fails (Node _ (Just t )  _          ) = t
+fails (Node _ Nothing _ )            = Node mempty Nothing empty
 h t k = foldr ($) t $ replicate k next
+h' t k = foldr (=<<) [t] $ replicate k nexts
 
 
