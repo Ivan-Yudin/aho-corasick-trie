@@ -5,7 +5,7 @@ author            : Ivan Yudin
 maintainer        : yudinivan@yahoo.de
 copyright         : 2019 Ivan Yudin
 license           : BSD3
-github            : Ivan-Yudin/string-matching
+github            : Ivan-Yudin/aho-corasick-trie
 extra-source-files:
 - README.md
 dependencies      :
