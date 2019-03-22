@@ -16,6 +16,7 @@ import Data.Default.Class(Default,def)
 import Data.Function (on)
 
 import Data.Maybe (fromMaybe)
+import Data.Maybe_ (Maybe'(..)) 
 
 import Data.ListLike (nub,sort,uncons,groupBy)
 import Data.MapLike
@@ -24,82 +25,6 @@ import  Data.Map.Lazy (Map)
 import qualified  Data.Map.Lazy as M (keys,intersectionWith, lookup,fromList,toList,empty,mapWithKey,null)
 import qualified  Data.List as L (lookup,null)
 
----------------------------------------------------------------
-
-data Maybe' a b = Just' a b | Nothing' deriving (Eq,Show,Read)
-
--------------------------------------------------------------
--- Classical instances for Maybe'
-------------------------------------------------------------
-
-instance (Eq a) => Semigroup (Maybe' a b) where
-  Nothing' <> y  = y
-  x  <> _        = x
-
-instance (Eq a ) => Monoid (Maybe' a b) where
-  mempty = Nothing'
-
-instance (Eq a ) => MapLike (Maybe' a b) a b where
-  empty = Nothing'
-
-  null :: Maybe' a b -> Bool
-  null Nothing' = True
-  null _        = False
-
-  singleton a b = Just' a b
-
-  fromList [] =         Nothing'
-  fromList xx = uncurry Just'   $ last xx
-
-  lookup x (Just' y b) | x == y = Just b
-  lookup _ _                    = Nothing
-
-  mapWithKey h (Just' a b) = Just' a (h a b)
-  mapWithKey _  _          = Nothing'
-
-  merge hh (Just' a1 b1) (Just' a2 b2)
-    | a1 == a2 = case hh a1 (Just b1) (Just b2) of
-          Nothing -> Nothing'
-          Just b  -> Just' a1 b
-    | a1 /= a2 = merge hh (Just' a1 b1) Nothing' -- we have to make a choice here
-                                                 -- which key to keep...
-
-  merge hh (Just' a b) Nothing'
-    = case hh a (Just b) Nothing of
-          Nothing -> Nothing'
-          Just b' -> Just' a b'
-
-  merge hh Nothing' (Just' a b)
-    = case hh a Nothing (Just b) of
-          Nothing -> Nothing'
-          Just b' -> Just' a b'
-
-  merge hh Nothing' Nothing' = Nothing'
-
-instance Functor (Maybe' a) where
-  fmap :: (b -> c) -> (Maybe' a b -> Maybe' a c)
-  fmap f (Just' a b) = Just'    a (f b)
-  fmap f  Nothing'   = Nothing'
-
--------------------------------------------------------------------
---  Applicative instances for @Maybe' a@ and @Map a@
--------------------------------------------------------------------
-
-instance (Default a, Eq a) => Applicative (Maybe' a) where
-  pure :: b -> Maybe' a b
-  pure b = Just' def b
-
-  liftA2 :: (b -> c -> d) -> (Maybe' a b) -> (Maybe' a c) -> Maybe' a d
-  liftA2 h (Just' a b) (Just' a' c) | a == a' = Just' a (h b c)
-  liftA2 _ _ _ = Nothing'
-
-instance (Default a, Ord a) => Applicative (Map a) where
-  pure b = M.fromList [(def,b)]
-
-  liftA2 :: (b -> c -> d) -> (Map a b) -> (Map a c) -> Map a d
-  liftA2 = M.intersectionWith
-
--------------------------------------------------------------------
 
 data Tree p out a = Node out                -- the output we produce if we reach the node
                      (Maybe (Tree p out a))    -- failure handling

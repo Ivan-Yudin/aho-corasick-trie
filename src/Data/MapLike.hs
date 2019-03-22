@@ -32,6 +32,7 @@ import Prelude hiding (lookup, null)
 import qualified Data.Map.Lazy as M
 import qualified Data.Map.Merge.Lazy as M
 import           Data.Map.Lazy       (Map)
+import           Data.Maybe_         (Maybe'(..))
 import qualified Data.List     as L
 
 class MapLike full key val | full -> key, full -> val where
@@ -44,6 +45,12 @@ class MapLike full key val | full -> key, full -> val where
   mapWithKey :: (key -> val -> val) -> full -> full 
   merge :: (key -> Maybe val -> Maybe val -> Maybe val ) -> 
               full -> full -> full 
+
+
+---------------------------------------------------------------
+-- Instances of @MapLike@
+-------------------------------------------------------------- 
+
 
 instance (Ord key, Eq val) => MapLike (Map key val) key val where
    empty = M.empty
@@ -69,4 +76,41 @@ instance (Ord key, Eq val) => MapLike ([(key,val)]) key val where
    mapWithKey h = map ( \(key,val) -> (key, h key val) ) 
    merge f list1 list2 = M.toList $ merge f (M.fromList list1 ) (M.fromList list2) 
    
+instance (Eq a ) => MapLike (Maybe' a b) a b where
+  empty = Nothing'
+
+  null :: Maybe' a b -> Bool
+  null Nothing' = True
+  null _        = False
+
+  singleton a b = Just' a b
+
+  fromList [] =         Nothing'
+  fromList xx = uncurry Just'   $ last xx
+
+  lookup x (Just' y b) | x == y = Just b
+  lookup _ _                    = Nothing
+
+  mapWithKey h (Just' a b) = Just' a (h a b)
+  mapWithKey _  _          = Nothing'
+
+  merge hh (Just' a1 b1) (Just' a2 b2)
+    | a1 == a2 = case hh a1 (Just b1) (Just b2) of
+          Nothing -> Nothing'
+          Just b  -> Just' a1 b
+    | a1 /= a2 = merge hh (Just' a1 b1) Nothing' -- we have to make a choice here
+                                                 -- which key to keep...
+
+  merge hh (Just' a b) Nothing'
+    = case hh a (Just b) Nothing of
+          Nothing -> Nothing'
+          Just b' -> Just' a b'
+
+  merge hh Nothing' (Just' a b)
+    = case hh a Nothing (Just b) of
+          Nothing -> Nothing'
+          Just b' -> Just' a b'
+
+  merge hh Nothing' Nothing' = Nothing'
+
 
