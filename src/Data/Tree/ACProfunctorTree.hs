@@ -133,13 +133,22 @@ match root@(Node out _ branch) xx@(x:xs)
 match' :: (Monoid out, t ~ Tree p out a, MapLike (p a t) a t ) =>
           t -> t  -> [a] -> out
 
-match' root (Node out failure branch) [] = out
+match' root (Node out failure branch) []
+  = case failure of 
+      Nothing  -> out
+      (Just t) -> out <> match' root t [] 
 
 match' root (Node out failure branch) xx@(x:xs)
   = case lookup x branch  of
-     Just  t                      -> out <> match' root t xs
-     Nothing  | Just t <- failure -> out <> match' root t xx
-              | otherwise         -> out <> match  root   xx
+     Just  t                       -> out <> collectOut failure <> match' root t xs
+     Nothing  | Just t  <- failure -> out <>                       match' root t xx
+              | Nothing <- failure -> out <>                       match  root   xx
+
+collectOut :: (Monoid out, t ~ Tree p out a, MapLike (p a t) a t ) =>
+              Maybe t -> out
+collectOut Nothing = mempty
+collectOut (Just (Node out failure _)  )  = out <> collectOut failure
+ 
 
 -- | The following function produces  tree that in conjunction with
 -- match permits to find some matchLes in given sequences.
@@ -211,9 +220,9 @@ tie  (Node outA _ continuation) rootB
                    Nothing  -> prezip  t )
 
 
-    zipping t@(Node outB' failureB' continuationB')
-              (Node outA' _         continuationA')
-      = Node (outB' <> outA') (Just t)  continuationC
+    zipping t@(Node _     _ continuationB')
+              (Node outA' _ continuationA')
+      = Node outA' (Just t)  continuationC
         where
           continuationC = merge hh continuationA' continuationB'
 
