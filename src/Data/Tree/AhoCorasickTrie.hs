@@ -5,7 +5,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 
-module Data.Tree.ACProfunctorTree where
+module Data.Tree.AhoCorasickTrie where
 
 import Prelude hiding (null, uncons,lookup)
 
