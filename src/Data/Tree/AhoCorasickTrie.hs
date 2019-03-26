@@ -19,7 +19,8 @@ import Data.Maybe (fromMaybe)
 import Data.Maybe_ (Maybe'(..)) 
 
 import Data.ListLike (nub,sort,uncons,groupBy)
-import Data.MapLike
+import qualified Data.MapLike as ML
+import Data.MapLike (MapLike)
 
 import  Data.Map.Lazy (Map)
 import qualified  Data.Map.Lazy as M (keys,intersectionWith, lookup,fromList,toList,empty,mapWithKey,null)
@@ -51,7 +52,7 @@ match :: (Monoid out, t ~ Tree p out a, MapLike (p a t) a t ) =>
 match _ [] = mempty
 
 match root@(Node out _ branch) xx@(x:xs)
-  = case lookup x branch of
+  = case ML.lookup x branch of
      Just  t ->  out <> match' root t xs
      Nothing ->         match  root   xs
 
@@ -64,7 +65,7 @@ match' root (Node out failure branch) []
       (Just t) -> out <> match' root t [] 
 
 match' root (Node out failure branch) xx@(x:xs)
-  = case lookup x branch  of
+  = case ML.lookup x branch  of
      Just  t                       -> out <> collectOut failure <> match' root t xs
      Nothing  | Just t  <- failure -> out <>                       match' root t xx
               | Nothing <- failure -> out <>                       match  root   xx
@@ -91,8 +92,8 @@ prebuild1 f string = prebuild'  string (f string)
                  , MapLike (p a t) a t) =>
                   [a] -> out -> t
 
-    prebuild' []     out =   Node out    Nothing   empty
-    prebuild' (x:xs) out =   Node mempty Nothing $ singleton x
+    prebuild' []     out =   Node out    Nothing   ML.empty
+    prebuild' (x:xs) out =   Node mempty Nothing $ ML.singleton x
                                                  $ prebuild' xs out
 
 
@@ -106,11 +107,11 @@ prebuild f strings =
 --    prebuild' :: (Ord a, Monoid out, Eq out, t ~ Tree p out a) =>
 --                 [( [a] , out )]  -> t
 
-    prebuild' [] = Node mempty Nothing empty
+    prebuild' [] = Node mempty Nothing ML.empty
     prebuild' pairs@( (x,out):pairs')
       | L.null x    =Node out    Nothing (createMap pairs')
       | otherwise =Node mempty Nothing (createMap pairs )
-    createMap pairs = fromList $
+    createMap pairs = ML.fromList $
               createKeyValuePair  <$>
               groupBy ( (==) `on` head.fst) pairs
 
@@ -139,8 +140,8 @@ tie  (Node outA _ continuation) rootB
    where
     prezip t@(Node _     _ continuationB')
              (Node outA' _ continuationA')
-      = Node outA' Nothing $ flip mapWithKey continuationA'
-        ( \a' -> case lookup a' continuationB' of
+      = Node outA' Nothing $ flip ML.mapWithKey continuationA'
+        ( \a' -> case ML.lookup a' continuationB' of
                    Just tB' -> zipping tB'
                    Nothing  -> prezip  t )
 
@@ -149,7 +150,7 @@ tie  (Node outA _ continuation) rootB
               (Node outA' _ continuationA')
       = Node outA' (Just t)  continuationC
         where
-          continuationC = merge hh continuationA' continuationB'
+          continuationC = ML.merge hh continuationA' continuationB'
 
           hh _ (Just tA') (Just tB') = Just    $ zipping tB'   tA'
           hh _ (Just tA')  Nothing   = Just    $ prezip  rootB tA'
@@ -172,7 +173,7 @@ labels (Node _  _        continuation) = M.keys continuation
 next  (Node _  _        (Just' a t )) = t
 nexts  (Node _  _         continuation) = map snd $ M.toList continuation
 fails (Node _ (Just t )  _          ) = t
-fails (Node _ Nothing _ )            = Node mempty Nothing empty
+fails (Node _ Nothing _ )            = Node mempty Nothing ML.empty
 h t k = foldr ($) t $ replicate k next
 h' t k = foldr (=<<) [t] $ replicate k nexts
 
