@@ -25,10 +25,6 @@ branchKMP  (KMPNode _   _ f) = f
 failureKMP (KMPNode _   f _) = f
 
 
-instance (Observable out, Observable a) => Observable ( KMPTree out a) where
-  observer (KMPNode out failure branch ) = send "KMPNode" (return (KMPNode) << out << failure << branch) 
-
-
 -- | Given KMP tree and a string collects outputs produced by each matchLing
 -- substring. In the typical use @out~[a]@ and it equals to the matchLing
 -- substring. 
