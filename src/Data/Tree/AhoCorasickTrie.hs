@@ -27,15 +27,15 @@ import qualified  Data.Map.Lazy as M (keys,intersectionWith, lookup,fromList,toL
 import qualified  Data.List as L (lookup,null)
 
 
-data Tree p out a = Node out                -- the output we produce if we reach the node
-                     (Maybe (Tree p out a))    -- failure handling
-                     (p a (Tree p out a)) -- continuation from the node driven by input
+data Tree f out a = Node out                -- the output we produce if we reach the node
+                     (Maybe (Tree f out a))    -- failure handling
+                     (f (Tree f out a)) -- continuation from the node driven by input
 
 
-deriving instance (Eq   a, Eq   out) => Eq   (Tree Map    out a)
-deriving instance (Eq   a, Eq   out) => Eq   (Tree Maybe' out a)
-deriving instance (Show a, Show out) => Show (Tree Map    out a)
-deriving instance (Show a, Show out) => Show (Tree Maybe' out a)
+deriving instance (Eq   a, Eq   out) => Eq   (Tree (Map    a) out a)
+deriving instance (Eq   a, Eq   out) => Eq   (Tree (Maybe' a) out a)
+deriving instance (Show a, Show out) => Show (Tree (Map    a) out a)
+deriving instance (Show a, Show out) => Show (Tree (Maybe' a) out a)
 
 branch  (Node _   _ f) = f
 failure (Node _   f _) = f
@@ -46,7 +46,7 @@ failure (Node _   f _) = f
 -- | Given  tree and a string collects outputs produced by each matchLing
 -- substring. In the typical use @out~[a]@ and it equals to the matchLing
 -- substring.
-match :: (Monoid out, t ~ Tree p out a, MapLike (p a t) a t ) =>
+match :: (Monoid out, t ~ Tree f out a, MapLike (f t) a t ) =>
          t  -> [a]  -> out
 
 match _ [] = mempty
@@ -56,7 +56,7 @@ match root@(Node out _ branch) xx@(x:xs)
      Just  t ->  out <> match' root t xs
      Nothing ->         match  root   xs
 
-match' :: (Monoid out, t ~ Tree p out a, MapLike (p a t) a t ) =>
+match' :: (Monoid out, t ~ Tree f out a, MapLike (f t) a t ) =>
           t -> t  -> [a] -> out
 
 match' root (Node out failure branch) []
@@ -70,7 +70,7 @@ match' root (Node out failure branch) xx@(x:xs)
      Nothing  | Just t  <- failure -> out <>                       match' root t xx
               | Nothing <- failure -> out <>                       match  root   xx
 
-collectOut :: (Monoid out, t ~ Tree p out a, MapLike (p a t) a t ) =>
+collectOut :: (Monoid out, t ~ Tree f out a, MapLike (f t) a t ) =>
               Maybe t -> out
 collectOut Nothing = mempty
 collectOut (Just (Node out failure _)  )  = out <> collectOut failure
@@ -82,14 +82,14 @@ collectOut (Just (Node out failure _)  )  = out <> collectOut failure
 -- outputs all matchLing prefixes of @p@, including @p@, and then resumes
 -- with
 
-prebuild1 :: (Ord a, Monoid out, Eq out,  t ~ Tree p out a
-             , MapLike (p a t) a t ) =>
-            ([a] -> out) -> [a] -> (Tree p out a)
+prebuild1 :: (Ord a, Monoid out, Eq out,  t ~ Tree f out a
+             , MapLike (f t) a t ) =>
+            ([a] -> out) -> [a] -> (Tree f out a)
 
 prebuild1 f string = prebuild'  string (f string)
   where
-    prebuild' :: (Ord a, Monoid out, Eq out, t~ Tree p out a
-                 , MapLike (p a t) a t) =>
+    prebuild' :: (Ord a, Monoid out, Eq out, t~ Tree f out a
+                 , MapLike (f t) a t) =>
                   [a] -> out -> t
 
     prebuild' []     out =   Node out    Nothing   ML.empty
@@ -97,8 +97,8 @@ prebuild1 f string = prebuild'  string (f string)
                                                  $ prebuild' xs out
 
 
-prebuild :: (Ord a, Monoid out, Eq out, t ~ Tree p out a
-            , MapLike (p a t) a t) =>
+prebuild :: (Ord a, Monoid out, Eq out, t ~ Tree f out a
+            , MapLike (f t) a t) =>
             ([a] -> out) -> [[a]] -> t
 prebuild f strings =
    let strings' = nub $ sort strings
@@ -131,8 +131,8 @@ type BinOpOn a = a -> a -> a
 
 
 
-tie :: (Eq out, Monoid out, Ord a, t ~ Tree p out a
-       , MapLike (p a t) a t, Functor (p a) ) => BinOpOn t
+tie :: (Eq out, Monoid out, Ord a, t ~ Tree f out a
+       , MapLike (f t) a t, Functor f ) => BinOpOn t
 
 tie  (Node outA _ continuation) rootB
     = Node outA Nothing $ fmap (prezip rootB) continuation
@@ -164,8 +164,8 @@ tie  (Node outA _ continuation) rootB
 -----------------------------------------------------------------------
 
 
-t = prebuild1 (:[]) "ababcababcabcd" :: Tree Map [String] Char
-tt = prebuild (:[]) ["abc","acd","cc"] :: Tree Map [String] Char
+t = prebuild1 (:[]) "ababcababcabcd" :: Tree (Map Char) [String] Char
+tt = prebuild (:[]) ["abc","acd","cc"] :: Tree (Map Char) [String] Char
 w = let s = tie t s in s
 ww = tie tt ww
 label (Node _  _        (Just' a t )) = a
