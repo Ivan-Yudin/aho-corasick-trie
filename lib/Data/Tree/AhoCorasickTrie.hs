@@ -12,38 +12,47 @@ License : BSD-3
 
 module Data.Tree.AhoCorasickTrie where
 
-import Prelude hiding (null, uncons,lookup)
+import            Prelude                   hiding (null,uncons,lookup)
+import            Control.Applicative              ((<|>),liftA2,(<*>),pure)
+import            Data.Default.Class               (Default,def)
+import            Data.Function                    (on)
+import            Data.Maybe                       (fromMaybe)
+import            Data.Maybe_                      (Maybe'(..))               
+import            Data.ListLike                    (nub,sort,uncons,groupBy)
+import qualified  Data.MapLike        as ML
+import            Data.MapLike                     (MapLike)
+import            Data.Map.Lazy                    (Map)
+import            Data.IntMap                      (IntMap)
+import qualified  Data.Map.Lazy       as M         (keys,intersectionWith,lookup,fromList,toList,empty,mapWithKey,null)
+import qualified  Data.List           as L         (lookup,null)
 
-import Control.Applicative ((<|>),liftA2,(<*>),pure)
+-- | The next data type is used to model epsilon-trees. 
+-- These trees are graphs with two type of arrows: solid arrows and dotted arrows.
+-- The subgraph formed by solid arrows is a tree. 
+-- The dotted arrows represent backreference and they go up in the sense
+-- that the target of a dotted arrow has smaller depth than its source. 
+--
+-- The solid arrows are labeled. These labels are used to produce the
+-- output of the matching algorithm. 
+--
+--
+-- Since every vertex except the root has exactly onle incoming solid
+-- arrow, we can put the label of this arrow in the vertex. 
 
 
-import Data.Default.Class(Default,def)
-import Data.Function (on)
-
-import Data.Maybe (fromMaybe)
-import Data.Maybe_ (Maybe'(..)) 
-
-import Data.ListLike (nub,sort,uncons,groupBy)
-import qualified Data.MapLike as ML
-import Data.MapLike (MapLike)
-
-import  Data.Map.Lazy (Map)
-import qualified  Data.Map.Lazy as M (keys,intersectionWith, lookup,fromList,toList,empty,mapWithKey,null)
-import qualified  Data.List as L (lookup,null)
+data Tree f out a =
+     Node out                   -- the output we produce if we reach the node
+         (Maybe (Tree f out a)) -- failure handling
+         (f     (Tree f out a)) -- continuation from the node driven by input
 
 
-data Tree f out a = Node out                -- the output we produce if we reach the node
-                     (Maybe (Tree f out a))    -- failure handling
-                     (f (Tree f out a)) -- continuation from the node driven by input
+deriving instance (Eq   a, Eq   out) => Eq   (Tree IntMap  out a)
+deriving instance (Show a, Show out) => Show (Tree IntMap  out a)
 
-
-deriving instance (Eq   a, Eq   out) => Eq   (Tree (Map    a) out a)
-deriving instance (Eq   a, Eq   out) => Eq   (Tree (Maybe' a) out a)
-deriving instance (Show a, Show out) => Show (Tree (Map    a) out a)
-deriving instance (Show a, Show out) => Show (Tree (Maybe' a) out a)
-
-branch  (Node _   _ f) = f
-failure (Node _   f _) = f
+deriving instance (Eq   a, Eq   out) => Eq   (Tree (Map    a)  out a)
+deriving instance (Eq   a, Eq   out) => Eq   (Tree (Maybe' a)  out a)
+deriving instance (Show a, Show out) => Show (Tree (Map    a)  out a)
+deriving instance (Show a, Show out) => Show (Tree (Maybe' a)  out a)
 
 
 
