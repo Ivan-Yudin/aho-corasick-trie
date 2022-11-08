@@ -29,6 +29,8 @@ module Data.MapLike
 
 import Prelude hiding (lookup, null) 
 
+import qualified Data.IntMap   as IM
+import           Data.IntMap         (IntMap) 
 import qualified Data.Map.Lazy as M
 import qualified Data.Map.Merge.Lazy as M
 import           Data.Map.Lazy       (Map)
@@ -65,6 +67,25 @@ instance (Ord key, Eq val) => MapLike (Map key val) key val where
               (M.mapMaybeMissing $ (\key val2 -> f key Nothing (Just val2)))
               (M.zipWithMaybeMatched (\key val1 val2 -> f key (Just val1) (Just val2)))
                            
+instance (Eq val) => MapLike (IntMap val) Int val  where 
+   empty = IM.empty
+   null  = IM.null 
+   singleton key val = IM.fromList [(key,val)]
+   fromList = IM.fromList
+   lookup  = IM.lookup 
+   mapWithKey = IM.mapWithKey
+
+   merge f = IM.mergeWithKey 
+              (\key a b -> f key (Just a) (Just b) )
+              ( restrictToDiag $ 
+                IM.mergeWithKey (\key a _ -> f key (Just a) Nothing)
+                                id id ) 
+              ( restrictToDiag $
+                IM.mergeWithKey (\key b _ -> f key Nothing  (Just b) )
+                                id id ) 
+                where 
+                  restrictToDiag h x = h x x 
+   
 
 instance (Ord key, Eq val) => MapLike ([(key,val)]) key val where
 
@@ -112,5 +133,6 @@ instance (Eq a ) => MapLike (Maybe' a b) a b where
           Just b' -> Just' a b'
 
   merge hh Nothing' Nothing' = Nothing'
+
 
 

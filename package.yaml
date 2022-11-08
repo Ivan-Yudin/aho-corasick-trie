@@ -9,13 +9,25 @@ github            : Ivan-Yudin/aho-corasick-trie
 extra-source-files:
 - README.md
 dependencies      :
-- base >=4.7 && <5
-- containers 
-- data-default-class
-- hashable >= 1.2.7 && < 1.3
-- ListLike >=4.6 && < 4.7
-- profunctors >= 5.2 && < 5.4
+-  base                
+-  containers          
+-  data-default-class
+-  hashable            
+-  ListLike            
+-  profunctors         
+
+executables:
+ intmap: 
+  source-dirs  :  src        
+  main         :  Intmap
+  ghc-options  :
+  - -O2
+  - -split-sections
+
 library           :
-  source-dirs     : src
+  source-dirs     : lib
   exposed-modules :
-  - Data.Tree.ACTree 
+  - Data.Tree.KMPTree
+  - Data.Tree.AhoCorasickTrie
+  - Data.MapLike
+  - Data.Maybe_
