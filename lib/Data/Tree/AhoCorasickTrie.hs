@@ -4,6 +4,11 @@
 {-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneDeriving    #-}
+{- 
+Module : 
+Copyright : Ivan Yudin 
+License : BSD-3 
+-}
 
 module Data.Tree.AhoCorasickTrie where
 
