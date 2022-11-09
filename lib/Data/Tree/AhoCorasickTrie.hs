@@ -42,8 +42,8 @@ data Tree f out a =
          (f     (Tree f out a)) -- continuation from the node driven by the input
 
 
-deriving instance (Eq   a, Eq   out) => Eq   (Tree IntMap  out a)
-deriving instance (Show a, Show out) => Show (Tree IntMap  out a)
+deriving instance (Eq   a, Eq   out) => Eq   (Tree  IntMap     out a)
+deriving instance (Show a, Show out) => Show (Tree  IntMap     out a)
 
 deriving instance (Eq   a, Eq   out) => Eq   (Tree (Map    a)  out a)
 deriving instance (Eq   a, Eq   out) => Eq   (Tree (Maybe' a)  out a)
@@ -67,10 +67,10 @@ match _ [] = mempty
 -- input symbol. 
 -- If we can move out of the root we pass the execution to @match'@. 
 -- Normally @out@ at the root node is @mempty@. 
-match root@(Node out _ branch) xx@(x:xs)
-  = case ML.lookup x branch of
-     Just  t ->  out <> match' root t xs
-     Nothing ->         match  root   xs
+match root@(Node out _ branches) (x:xs)
+  = case ML.lookup x branches of
+     Just  branch  ->  out <> match' root branch xs
+     Nothing       ->         match  root        xs
 
 match' :: (Monoid out, t ~ Tree f out a, MapLike (f t) a t ) =>
           t -> t  -> [a] -> out
@@ -125,7 +125,7 @@ prebuild f strings =
 
     prebuild' [] = Node mempty Nothing ML.empty
     prebuild' pairs@( (x,out):pairs')
-      | L.null x    =Node out    Nothing (createMap pairs')
+      | L.null x  =Node out    Nothing (createMap pairs')
       | otherwise =Node mempty Nothing (createMap pairs )
     createMap pairs = ML.fromList $
               createKeyValuePair  <$>
