@@ -27,23 +27,19 @@ import qualified  Data.Map.Lazy       as M         (keys,intersectionWith,lookup
 import qualified  Data.List           as L         (lookup,null)
 
 -- | The next data type is used to model epsilon-trees. 
+--
 -- These trees are graphs with two type of arrows: solid arrows and dotted arrows.
 -- The subgraph formed by solid arrows is a tree. 
--- The dotted arrows represent backreference and they go up in the sense
+-- The dotted arrows represent backreferences and they go up in the sense
 -- that the target of a dotted arrow has smaller depth than its source. 
 --
--- The solid arrows are labeled. These labels are used to produce the
--- output of the matching algorithm. 
+-- The solid arrows are labeled by the elements of the alphabet @a@.
 --
 --
--- Since every vertex except the root has exactly onle incoming solid
--- arrow, we can put the label of this arrow in the vertex. 
-
-
 data Tree f out a =
-     Node out                   -- the output we produce if we reach the node
-         (Maybe (Tree f out a)) -- failure handling
-         (f     (Tree f out a)) -- continuation from the node driven by input
+     Node out                   -- the output to produce if the node is reached
+         (Maybe (Tree f out a)) -- backtracking if there is no continuation
+         (f     (Tree f out a)) -- continuation from the node driven by the input
 
 
 deriving instance (Eq   a, Eq   out) => Eq   (Tree IntMap  out a)
@@ -57,14 +53,20 @@ deriving instance (Show a, Show out) => Show (Tree (Maybe' a)  out a)
 
 
 
--- | Given  tree and a string collects outputs produced by each matchLing
--- substring. In the typical use @out~[a]@ and it equals to the matchLing
+-- | Given  tree and a string collects outputs produced by each matching
+-- substring. In the typical use @out~[a]@ and it equals to the matching
 -- substring.
 match :: (Monoid out, t ~ Tree f out a, MapLike (f t) a t ) =>
          t  -> [a]  -> out
 
+-- Corner case when the input is empty
 match _ [] = mempty
 
+-- Initialization of the matching algorithm. 
+-- If we cannot move out of the root, we just discard the 
+-- input symbol. 
+-- If we can move out of the root we pass the execution to @match'@. 
+-- Normally @out@ at the root node is @mempty@. 
 match root@(Node out _ branch) xx@(x:xs)
   = case ML.lookup x branch of
      Just  t ->  out <> match' root t xs
@@ -91,9 +93,9 @@ collectOut (Just (Node out failure _)  )  = out <> collectOut failure
  
 
 -- | The following function produces  tree that in conjunction with
--- match permits to find some matchLes in given sequences.
--- Namely it finds the longest matchLing prefix @p@ of a given string @s@,
--- outputs all matchLing prefixes of @p@, including @p@, and then resumes
+-- match permits to find some matches in given sequences.
+-- Namely it finds the longest matching prefix @p@ of a given string @s@,
+-- outputs all matching prefixes of @p@, including @p@, and then resumes
 -- with
 
 prebuild1 :: (Ord a, Monoid out, Eq out,  t ~ Tree f out a
