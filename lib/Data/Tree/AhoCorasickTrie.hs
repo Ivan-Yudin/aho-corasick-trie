@@ -139,14 +139,8 @@ prebuild h strings =
     tailOnFst (x,out) = (tail x , out)
 
 
-
-
-type BinOpOn a = a -> a -> a
-
-
-
 tie :: (Eq out, Monoid out, Ord a, t ~ Tree f out a
-       , MapLike (f t) a t, Functor f ) => BinOpOn t
+       , MapLike (f t) a t, Functor f ) => t -> t -> t
 
 tie  (Node outA _ continuation) rootB
     = Node outA Nothing $ fmap (prezip rootB) continuation
