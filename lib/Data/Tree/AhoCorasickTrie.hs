@@ -4,10 +4,10 @@
 {-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneDeriving    #-}
-{- 
-Module : 
-Copyright : Ivan Yudin 
-License : BSD-3 
+{-
+Module :
+Copyright : Ivan Yudin
+License : BSD-3
 -}
 
 module Data.Tree.AhoCorasickTrie where
@@ -17,7 +17,7 @@ import            Control.Applicative              ((<|>),liftA2,(<*>),pure)
 import            Data.Default.Class               (Default,def)
 import            Data.Function                    (on)
 import            Data.Maybe                       (fromMaybe)
-import            Data.Maybe_                      (Maybe'(..))               
+import            Data.Maybe_                      (Maybe'(..))
 import            Data.ListLike                    (nub,sort,uncons,groupBy)
 import qualified  Data.MapLike        as ML
 import            Data.MapLike                     (MapLike)
@@ -26,12 +26,12 @@ import            Data.IntMap                      (IntMap)
 import qualified  Data.Map.Lazy       as M         (keys,intersectionWith,lookup,fromList,toList,empty,mapWithKey,null)
 import qualified  Data.List           as L         (lookup,null)
 
--- | The next data type is used to model epsilon-trees. 
+-- | The next data type is used to model epsilon-trees.
 --
 -- These trees are graphs with two type of arrows: solid arrows and dotted arrows.
--- The subgraph formed by solid arrows is a tree. 
+-- The subgraph formed by solid arrows is a tree.
 -- The dotted arrows represent backreferences and they go up in the sense
--- that the target of a dotted arrow has smaller depth than its source. 
+-- that the target of a dotted arrow has smaller depth than its source.
 --
 -- The solid arrows are labeled by the elements of the alphabet @a@.
 --
@@ -62,11 +62,11 @@ match :: (Monoid out, t ~ Tree f out a, MapLike (f t) a t ) =>
 -- Corner case when the input is empty
 match _ [] = mempty
 
--- Initialization of the matching algorithm. 
--- If we cannot move out of the root, we just discard the 
--- input symbol. 
--- If we can move out of the root we pass the execution to @match'@. 
--- Normally @out@ at the root node is @mempty@. 
+-- Initialization of the matching algorithm.
+-- If we cannot move out of the root, we just discard the
+-- input symbol.
+-- If we can move out of the root we pass the execution to @match'@.
+-- Normally @out@ at the root node is @mempty@.
 match root@(Node out _ branches) (x:xs)
   = case ML.lookup x branches of
      Just  branch  ->  out <> match' root branch xs
@@ -76,9 +76,9 @@ match' :: (Monoid out, t ~ Tree f out a, MapLike (f t) a t ) =>
           t -> t  -> [a] -> out
 
 match' root (Node out failure branch) []
-  = case failure of 
+  = case failure of
       Nothing  -> out
-      (Just t) -> out <> match' root t [] 
+      (Just t) -> out <> match' root t []
 
 match' root (Node out failure branch) xx@(x:xs)
   = case ML.lookup x branch  of
@@ -90,7 +90,7 @@ collectOut :: (Monoid out, t ~ Tree f out a, MapLike (f t) a t ) =>
               Maybe t -> out
 collectOut Nothing = mempty
 collectOut (Just (Node out failure _)  )  = out <> collectOut failure
- 
+
 
 -- | The following function produces  tree that in conjunction with
 -- match permits to find some matches in given sequences.
