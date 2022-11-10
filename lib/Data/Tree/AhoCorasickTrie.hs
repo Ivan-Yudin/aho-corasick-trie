@@ -162,7 +162,7 @@ tie  (Node outA _ continuation) rootB
 
           hh _ (Just tA') (Just tB') = Just    $ zipping tB'   tA'
           hh _ (Just tA')  Nothing   = Just    $ prezip  rootB tA'
-          hh _ _           _         = Nothing  
+          hh _ _           _         = Nothing
 
 
 
