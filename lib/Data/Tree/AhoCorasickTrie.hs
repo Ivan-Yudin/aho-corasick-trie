@@ -3,6 +3,7 @@
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 {-
 Module :
@@ -98,35 +99,32 @@ collectOut (Just (Node out failure _)  )  = out <> collectOut failure
 -- outputs all matching prefixes of @p@, including @p@, and then resumes
 -- with
 
-prebuild1 :: (Ord a, Monoid out, Eq out,  t ~ Tree f out a
-             , MapLike (f t) a t ) =>
-            ([a] -> out) -> [a] -> (Tree f out a)
+prebuild1 :: forall a out t f.
+            (Ord a, Monoid out, Eq out, t ~ Tree f out a , MapLike (f t) a t )
+            => ([a] -> out) -> [a] -> (Tree f out a)
 
-prebuild1 f string = prebuild'  string (f string)
+prebuild1 h string = prebuild'  string
   where
-    prebuild' :: (Ord a, Monoid out, Eq out, t~ Tree f out a
-                 , MapLike (f t) a t) =>
-                  [a] -> out -> t
-
-    prebuild' []     out =   Node out    Nothing   ML.empty
-    prebuild' (x:xs) out =   Node mempty Nothing $ ML.singleton x
-                                                 $ prebuild' xs out
+    prebuild' :: [a] -> Tree f out a
+    prebuild' []      =   Node (h string) Nothing   ML.empty
+    prebuild' (x:xs)  =   Node  mempty    Nothing $ ML.singleton x
+                                                  $ prebuild' xs
 
 
-prebuild :: (Ord a, Monoid out, Eq out, t ~ Tree f out a
+prebuild :: forall a out t f.
+            (Ord a, Monoid out, Eq out, t ~ Tree f out a
             , MapLike (f t) a t) =>
             ([a] -> out) -> [[a]] -> t
-prebuild f strings =
+prebuild h strings =
    let strings' = nub $ sort strings
-   in  prebuild' $ zip strings' (map f strings')
+   in  prebuild' $ zip strings' (map h strings')
   where
---    prebuild' :: (Ord a, Monoid out, Eq out, t ~ Tree p out a) =>
---                 [( [a] , out )]  -> t
+    prebuild' :: [( [a] , out )]  -> t
 
-    prebuild' [] = Node mempty Nothing ML.empty
+    prebuild' []  = Node mempty Nothing ML.empty
     prebuild' pairs@( (x,out):pairs')
-      | L.null x  =Node out    Nothing (createMap pairs')
-      | otherwise =Node mempty Nothing (createMap pairs )
+      | L.null x  = Node out    Nothing (createMap pairs')
+      | otherwise = Node mempty Nothing (createMap pairs )
     createMap pairs = ML.fromList $
               createKeyValuePair  <$>
               groupBy ( (==) `on` head.fst) pairs
